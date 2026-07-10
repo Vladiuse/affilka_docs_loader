@@ -6,6 +6,7 @@ from urllib.parse import unquote, urlsplit, urlunsplit
 
 from dotenv import load_dotenv
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 
@@ -14,7 +15,7 @@ load_dotenv()
 START_URL: str = "https://wiki.affilka.net/en/home"
 ALLOWED_DOMAIN: str = "wiki.affilka.net"
 OUTPUT_DIR: Path = Path(__file__).parent / "site"
-PAGE_LOAD_WAIT_SECONDS: float = 1.5
+PAGE_LOAD_WAIT_SECONDS: float = 0.2
 EXCLUDED_PATH_PREFIXES: tuple[str, ...] = ("/login", "/logout")
 
 COOKIE_NAME: str = "jwt"
@@ -22,19 +23,21 @@ COOKIE_VALUE: str = os.environ["COOKIE_VALUE"]
 
 
 def normalize_url(url: str) -> str:
-    """Strip the fragment and trailing slash so equivalent URLs deduplicate."""
+    """Strip the fragment, trailing slash, and .html suffix so equivalent URLs deduplicate."""
     parsed = urlsplit(url)
     path = parsed.path.rstrip("/") or "/"
+    if path.endswith(".html"):
+        path = path[: -len(".html")]
     return urlunsplit((parsed.scheme, parsed.netloc, path, parsed.query, ""))
 
 
 def url_to_file_path(url: str) -> Path:
-    """Map a URL path to a local .html file, mirroring the path as folders."""
+    """Map a URL path to a local index.html file, mirroring the path as folders."""
     path = urlsplit(url).path.strip("/")
     if not path:
         return OUTPUT_DIR / "index.html"
     segments = [unquote(segment) for segment in path.split("/")]
-    return OUTPUT_DIR.joinpath(*segments[:-1], f"{segments[-1]}.html")
+    return OUTPUT_DIR.joinpath(*segments, "index.html")
 
 
 def is_crawlable(url: str) -> bool:
@@ -85,7 +88,14 @@ def crawl(driver: WebDriver, start_url: str) -> None:
 
 def main() -> None:
     """Log in with the JWT cookie and crawl the whole wiki starting from START_URL."""
-    driver: WebDriver = webdriver.Chrome()
+    options = Options()
+    options.add_argument("--start-maximized")
+    options.add_experimental_option(
+        "prefs",
+        {"profile.managed_default_content_settings.images": 2},
+    )
+
+    driver: WebDriver = webdriver.Chrome(options=options)
     try:
         driver.get(f"https://{ALLOWED_DOMAIN}")
         driver.add_cookie(
