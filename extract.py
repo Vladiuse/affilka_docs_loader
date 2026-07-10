@@ -1,12 +1,11 @@
 from pathlib import Path
 
 import trafilatura
-from lxml import html as lxml_html
-from lxml.html import HtmlElement
+from bs4 import BeautifulSoup, Tag
 
 from config import SITE_DIR, TEXT_DIR
 
-CONTENT_CLASS_NAMES: str = "contents"
+CONTENT_CLASS_NAME: str = "contents"
 
 
 def html_file_to_md_name(html_file: Path) -> str:
@@ -19,22 +18,16 @@ def html_file_to_md_name(html_file: Path) -> str:
     return f"{'_'.join(segments)}.md" if segments else "index.md"
 
 
-def find_content_element(tree: HtmlElement) -> HtmlElement | None:
-    """Find the first div whose class marks it as the page's article content block."""
-    for div in tree.iter("div"):
-        classes = (div.get("class") or "").split()
-        if any(name in classes for name in CONTENT_CLASS_NAMES):
-            return div
-    return None
+def find_content_element(soup: BeautifulSoup) -> Tag | None:
+    """Find the div that marks the page's article content block."""
+    return soup.select_one(f"div.{CONTENT_CLASS_NAME}")
 
 
 def html_to_markdown(html: str) -> str | None:
     """Extract the article content block, if found, and convert it to markdown."""
-    tree = lxml_html.fromstring(html)
-    content_element = find_content_element(tree)
-    source_html = (
-        html if content_element is None else lxml_html.tostring(content_element, encoding="unicode")
-    )
+    soup = BeautifulSoup(html, "lxml")
+    content_element = find_content_element(soup)
+    source_html = html if content_element is None else str(content_element)
     return trafilatura.extract(source_html, output_format="markdown")
 
 
@@ -65,4 +58,8 @@ def extract_site_text() -> None:
 
 
 if __name__ == "__main__":
-    extract_site_text()
+    # extract_site_text()
+    with open("/home/vlad/PycharmProjects/affilka_docs/site/en/release-notes/pablo-picasso/index.html") as file:
+        html = file.read()
+    soup = BeautifulSoup(html, "lxml")
+    print(find_content_element(soup))
