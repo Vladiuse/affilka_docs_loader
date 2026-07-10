@@ -1,6 +1,6 @@
 import time
 from collections import deque
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from urllib.parse import unquote, urlsplit, urlunsplit
 
 from selenium import webdriver
@@ -18,12 +18,14 @@ COOKIE_VALUE: str = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NiwiZW1haWwiOi
 
 
 def normalize_url(url: str) -> str:
+    """Strip the fragment and trailing slash so equivalent URLs deduplicate."""
     parsed = urlsplit(url)
     path = parsed.path.rstrip("/") or "/"
     return urlunsplit((parsed.scheme, parsed.netloc, path, parsed.query, ""))
 
 
 def url_to_file_path(url: str) -> Path:
+    """Map a URL path to a local .html file, mirroring the path as folders."""
     path = urlsplit(url).path.strip("/")
     if not path:
         return OUTPUT_DIR / "index.html"
@@ -32,13 +34,18 @@ def url_to_file_path(url: str) -> Path:
 
 
 def is_crawlable(url: str) -> bool:
+    """Check that a URL stays on the allowed domain and is a page, not an asset."""
     parsed = urlsplit(url)
     if parsed.scheme not in ("http", "https") or parsed.netloc != ALLOWED_DOMAIN:
         return False
-    return not parsed.path.startswith(EXCLUDED_PATH_PREFIXES)
+    if parsed.path.startswith(EXCLUDED_PATH_PREFIXES):
+        return False
+    suffix = PurePosixPath(parsed.path).suffix
+    return suffix in ("", ".html")
 
 
 def extract_links(driver: WebDriver) -> list[str]:
+    """Collect normalized, crawlable links from all anchors on the current page."""
     links: list[str] = []
     for element in driver.find_elements(By.TAG_NAME, "a"):
         href = element.get_attribute("href")
@@ -49,6 +56,7 @@ def extract_links(driver: WebDriver) -> list[str]:
 
 
 def crawl(driver: WebDriver, start_url: str) -> None:
+    """Breadth-first crawl from start_url, saving each page's HTML to disk."""
     visited: set[str] = set()
     queue: deque[str] = deque([normalize_url(start_url)])
 
@@ -72,6 +80,7 @@ def crawl(driver: WebDriver, start_url: str) -> None:
 
 
 def main() -> None:
+    """Log in with the JWT cookie and crawl the whole wiki starting from START_URL."""
     driver: WebDriver = webdriver.Chrome()
     try:
         driver.get(f"https://{ALLOWED_DOMAIN}")
