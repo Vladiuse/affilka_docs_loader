@@ -1,11 +1,15 @@
+import os
 import time
 from collections import deque
 from pathlib import Path, PurePosixPath
 from urllib.parse import unquote, urlsplit, urlunsplit
 
+from dotenv import load_dotenv
 from selenium import webdriver
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
+
+load_dotenv()
 
 START_URL: str = "https://wiki.affilka.net/en/home"
 ALLOWED_DOMAIN: str = "wiki.affilka.net"
@@ -14,7 +18,7 @@ PAGE_LOAD_WAIT_SECONDS: float = 1.5
 EXCLUDED_PATH_PREFIXES: tuple[str, ...] = ("/login", "/logout")
 
 COOKIE_NAME: str = "jwt"
-COOKIE_VALUE: str = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NiwiZW1haWwiOiJhZmZ3aWtpQHNvZnRzd2lzcy5jb20iLCJuYW1lIjoiQWZmIFdpa2kiLCJhdiI6bnVsbCwidHoiOiJFdXJvcGUvTW9zY293IiwibGMiOiJlbiIsImRmIjoiIiwiYXAiOiJsaWdodCIsInBlcm1pc3Npb25zIjpbInJlYWQ6cGFnZXMiLCJyZWFkOmFzc2V0cyJdLCJncm91cHMiOls1XSwiaWF0IjoxNzgzNjk2MDk4LCJleHAiOjE3ODM2OTc4OTgsImF1ZCI6InVybjp3aWtpLmpzIiwiaXNzIjoidXJuOndpa2kuanMifQ.pKGwEgPl2IAX-INwdPo0NpgSlVnOkev60louPccGq8wdyE_y6BKijYX4pWYEDFIgsTT0TTLU-9jpJ95PxlHfJm2pgjOv_dAYkxyPrjhWDCGI-akn4uCjFtl3MkMaao5HMv6dL1T8hLJh2saR_m031z8__a_-FIeAUFkaoe7QswyxirrX2zgjJ3UoedD0wNM78Y5mG4RYmX5ismssVPECShRSl0nHlnl7JKD-BQQxBdH8FZks2kN7DsEREY0AzSbGZxAErLHAgkj4B708uB5187IYSXXFgJ5-BIG-cNeiyZUR1N4rjvKy7vrK2HRk1V3w0qLe-MbHaNOyQ-avgcbGsQ"
+COOKIE_VALUE: str = os.environ["COOKIE_VALUE"]
 
 
 def normalize_url(url: str) -> str:
