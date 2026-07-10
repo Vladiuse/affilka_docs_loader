@@ -1,30 +1,67 @@
 from pathlib import Path
 
 import trafilatura
+from lxml import html as lxml_html
+from lxml.html import HtmlElement
 
 from config import SITE_DIR, TEXT_DIR
 
+CONTENT_CLASS_NAMES: str = "contents"
 
-def html_file_to_text_path(html_file: Path) -> Path:
-    """Map a saved index.html path under SITE_DIR to its .txt path under TEXT_DIR."""
+
+def html_file_to_md_name(html_file: Path) -> str:
+    """Build a flat .md name from a site/ path, e.g. some1/some2/index.html -> some1_some2.md."""
     relative_path = html_file.relative_to(SITE_DIR)
-    return TEXT_DIR / relative_path.with_suffix(".txt")
+    parts = list(relative_path.parts)
+    stem = Path(parts[-1]).stem
+    dirs = parts[:-1]
+    segments = list(dirs) if stem == "index" else [*dirs, stem]
+    return f"{'_'.join(segments)}.md" if segments else "index.md"
+
+
+def find_content_element(tree: HtmlElement) -> HtmlElement | None:
+    """Find the first div whose class marks it as the page's article content block."""
+    for div in tree.iter("div"):
+        classes = (div.get("class") or "").split()
+        if any(name in classes for name in CONTENT_CLASS_NAMES):
+            return div
+    return None
+
+
+def html_to_markdown(html: str) -> str | None:
+    """Extract the article content block, if found, and convert it to markdown."""
+    tree = lxml_html.fromstring(html)
+    content_element = find_content_element(tree)
+    source_html = (
+        html if content_element is None else lxml_html.tostring(content_element, encoding="unicode")
+    )
+    return trafilatura.extract(source_html, output_format="markdown")
 
 
 def extract_site_text() -> None:
-    """Convert every downloaded HTML page under SITE_DIR into plain text under TEXT_DIR."""
-    html_files = sorted(SITE_DIR.rglob("index.html"))
+    """Convert every downloaded HTML page under SITE_DIR into markdown under TEXT_DIR."""
+    TEXT_DIR.mkdir(parents=True, exist_ok=True)
+    html_files = sorted(SITE_DIR.rglob("*.html"))
+    total_md_chars = 0
+    converted_count = 0
+
     for index, html_file in enumerate(html_files, start=1):
         html = html_file.read_text(encoding="utf-8")
-        text = trafilatura.extract(html)
-        if text is None:
-            print(f"[{index}/{len(html_files)}] skipped (no content): {html_file}")
+        markdown = html_to_markdown(html)
+        if markdown is None:
+            print(f"[{index}/{len(html_files)}] skipped (no content block found): {html_file}")
             continue
 
-        text_file = html_file_to_text_path(html_file)
-        text_file.parent.mkdir(parents=True, exist_ok=True)
-        text_file.write_text(text, encoding="utf-8")
-        print(f"[{index}/{len(html_files)}] saved {html_file} -> {text_file}")
+        md_file = TEXT_DIR / html_file_to_md_name(html_file)
+        md_file.write_text(markdown, encoding="utf-8")
+        converted_count += 1
+        total_md_chars += len(markdown)
+        print(
+            f"[{index}/{len(html_files)}] {html_file} ({len(html)} chars) "
+            f"-> {md_file} ({len(markdown)} chars)"
+        )
+
+    print(f"total: {converted_count} files, {total_md_chars} chars")
 
 
 if __name__ == "__main__":
