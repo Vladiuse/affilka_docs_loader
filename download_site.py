@@ -10,11 +10,12 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 
+from config import SITE_DIR
+
 load_dotenv()
 
 START_URL: str = "/en/home"
 ALLOWED_DOMAIN: str = "wiki.affilka.net"
-OUTPUT_DIR: Path = Path(__file__).parent / "site"
 PAGE_LOAD_WAIT_SECONDS: float = 0.2
 EXCLUDED_PATH_PREFIXES: tuple[str, ...] = ("/login", "/logout")
 
@@ -42,9 +43,9 @@ def url_to_file_path(url: str) -> Path:
     """Map a URL path to a local index.html file, mirroring the path as folders."""
     path = urlsplit(url).path.strip("/")
     if not path:
-        return OUTPUT_DIR / "index.html"
+        return SITE_DIR / "index.html"
     segments = [unquote(segment) for segment in path.split("/")]
-    return OUTPUT_DIR.joinpath(*segments, "index.html")
+    return SITE_DIR.joinpath(*segments, "index.html")
 
 
 def is_crawlable(url: str) -> bool:
