@@ -12,7 +12,7 @@ from selenium.webdriver.common.by import By
 
 load_dotenv()
 
-START_URL: str = "https://wiki.affilka.net/en/home"
+START_URL: str = "/en/home"
 ALLOWED_DOMAIN: str = "wiki.affilka.net"
 OUTPUT_DIR: Path = Path(__file__).parent / "site"
 PAGE_LOAD_WAIT_SECONDS: float = 0.2
@@ -20,6 +20,13 @@ EXCLUDED_PATH_PREFIXES: tuple[str, ...] = ("/login", "/logout")
 
 COOKIE_NAME: str = "jwt"
 COOKIE_VALUE: str = os.environ["COOKIE_VALUE"]
+
+SITE_ORIGIN: str = f"https://{ALLOWED_DOMAIN}/"
+
+
+def rewrite_absolute_links(html: str) -> str:
+    """Rewrite absolute links to the crawled domain into root-relative paths."""
+    return html.replace(SITE_ORIGIN, "/")
 
 
 def normalize_url(url: str) -> str:
@@ -78,7 +85,7 @@ def crawl(driver: WebDriver, start_url: str) -> None:
 
         file_path = url_to_file_path(url)
         file_path.parent.mkdir(parents=True, exist_ok=True)
-        file_path.write_text(driver.page_source, encoding="utf-8")
+        file_path.write_text(rewrite_absolute_links(driver.page_source), encoding="utf-8")
         print(f"[{len(visited)}] saved {url} -> {file_path}")
 
         for link in extract_links(driver):
