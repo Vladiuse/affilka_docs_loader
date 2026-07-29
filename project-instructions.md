@@ -6,6 +6,16 @@
 
 Сайт документации был скачан целиком (рендеренный HTML каждой страницы), после чего вёрстка очищена от меню, сайдбаров и технического мусора, а контент переведён в формат Markdown.
 
+## API-документация (OpenAPI)
+
+В папке `api_docs/` лежат OpenAPI-схемы (JSON) — формальное описание REST API Affilka, отдельно от текстовой документации из вики. Используй их для ответов про конкретные эндпоинты, параметры запросов/ответов, коды ошибок и т.п. Файлы:
+
+- `frontend_anonymous.json` — Frontend Anonymous API
+- `frontend_operator.json` — Frontend Operator API
+- `frontend_partner.json` — Frontend Partner API
+- `customer_operator.json` — Customer Operator API
+- `integration.json` — Integration API
+
 ## Важно про имена файлов
 
 Имя каждого файла соответствует пути этой страницы на исходном сайте, где `/` заменён на `__`. Например, файл `en__api__authentication.md` соответствует странице `wiki.affilka.net/en/api/authentication`. Используй это, чтобы понимать иерархию разделов документации и на какую конкретно страницу ссылаться в ответе.
