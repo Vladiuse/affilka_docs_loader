@@ -16,6 +16,10 @@
 - `customer_operator.json` — Customer Operator API
 - `integration.json` — Integration API
 
+## Как пользоваться API (руководство)
+
+Помимо OpenAPI-схем, есть текстовое руководство по работе с API из вики: `en__home__operator-interface-manual__complete-guide__API.md`. В нём описано, какие есть разделы API (Frontend Anonymous/Operator/Partner, Customer Operator, Integration), как авторизовываться (Statistic Token, CSRF-токен, API key/secret), как формировать запросы и что означают коды ответов. Используй этот файл для вопросов о процессе работы с API (авторизация, порядок запросов, коды ошибок), а OpenAPI-схемы — для конкретных эндпоинтов и параметров.
+
 ## Важно про имена файлов
 
 Имя каждого файла соответствует пути этой страницы на исходном сайте, где `/` заменён на `__`. Например, файл `en__api__authentication.md` соответствует странице `wiki.affilka.net/en/api/authentication`. Используй это, чтобы понимать иерархию разделов документации и на какую конкретно страницу ссылаться в ответе.
