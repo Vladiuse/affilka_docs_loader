@@ -1,0 +1,1 @@
+This navigation menu tab covers everything related to your affiliates: the list of all partners, their campaigns and promos, the log of all postbacks sent to affiliate trackers and bonus codes available to your affiliates to invite players with.
