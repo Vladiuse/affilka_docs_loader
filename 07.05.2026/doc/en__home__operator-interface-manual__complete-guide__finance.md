@@ -1,1 +1,0 @@
-This tab contains money activities on partner accounts or affiliate system bankroll and exchange rates data.
