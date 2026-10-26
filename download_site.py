@@ -12,10 +12,10 @@ from selenium.webdriver.common.by import By
 
 from config import SITE_DIR
 
-load_dotenv()
+load_dotenv(override=True)
 
-START_URL: str = "/en/home"
 ALLOWED_DOMAIN: str = "wiki.affilka.net"
+START_URL: str = f"https://{ALLOWED_DOMAIN}/en/home"
 PAGE_LOAD_WAIT_SECONDS: float = 0.2
 EXCLUDED_PATH_PREFIXES: tuple[str, ...] = ("/login", "/logout")
 
