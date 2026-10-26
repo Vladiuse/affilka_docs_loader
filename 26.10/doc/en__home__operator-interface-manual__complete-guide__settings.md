@@ -1,0 +1,1 @@
+Here you can view and manage general affiliate program settings, the list of operators and available roles and monitor/subscribe to events happening in the affiliate program.

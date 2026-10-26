@@ -1,0 +1,200 @@
+Operators managing multiple brands want to optimise their marketing costs by not paying for the same player more than once if that player registers and plays across different brands within the same Affiliate Program. While we previously offered the `not_qualified_in_any_brand_players_only` modifier in the commission constructor to address this, the solution had an impact on Partner Income that limited users for effectively using this parameter during analysis.
+
+We’ve introduced a new mechanism that automatically identifies **cross-brand duplicate players** by analyzing player email addresses across brands within the same Affiliate Program. This allows for accurate and transparent player deduplication while preserving reporting integrity.
+
+How cross-brand mechanism works:
+
+- Right after player import, the system checks whether a player with the same email already exists within the same Affiliate Program (across all brands). The system does track the players even within the same brand.- **The users with "+" alias**emails (e.g.- `example@gmail.com vs`- `example+test@gmail.com`) are treated as the same user.
+ 
+- A player is marked as a `cross-brand duplicate`if another player with the same normalized email and an earlier`created_at`timestamp already exists.- **Important!**The system decides which player is cross-brand duplicate based on- `created_at`date, not- `sign_up_at`date.
+ 
+
+For example:
+
+| Player id  | Created at | Email | Brand name | Cross-brand duplicate status | Comment | 
+|---|---|---|---|---|---|
+| Player 1 | 02/08/2024 09:46:01 | example@gmail.com | Slots | false | All further players with `created_at`later than 02/08/2024 09:46:01 are marked as`cross-brand duplicate`. | 
+| Player 2 | 02/08/2024 09:46:02 | example@gmail.com | Slots&Wins | true | |
+| Player 3 | 26/08/2024 10:48:07 | example+test@gmail.com | WinStreak | true | |
+| Player 4 | 27/08/2024 13:15:45 | example+1@gmail.com | Slots | true | 
+
+Once the player is marked as `cross-brand duplicate: true `you can find detailed information about the status assignment date and original player on the player's detailed page. You can also easily filter all cross-brand duplicate players on the "Players" page (/casino/players) using "Cross-brand duplicate" filter. In addition, we do also add "Cross-brand duplicates" column on the "Partner Statistics" page (/casino/report) + available via Customer API.
+
+ 
+
+Whenever a player’s email is updated:
+
+- A **fresh cross-brand duplication check**is triggered for that player using the new email.
+- Additionally, the system **re-evaluates all previous connections**tied to the player’s old email to maintain consistency across the dataset.
+ 
+
+Players can be reassigned to another partner/campaign/promo only **within the same brand**, meaning that this is the same user, not two different. So when a player is reassigned, their `cross-brand duplicate` status — either `true` or `false` — is **inherited from the original player** they were copied from.
+
+Email changes within reassigned player chains require special handling:
+
+Chain: Player ID 1 assigned to Promo A, then reassigned to promo B (Player ID 2), then to Promo C (Player ID 3). With each reassignment the system creates a new player with another id, the rest personal information, statuses, etc. remains the same.
+
+- **If the email is updated on the last player in the chain (Player ID 3)**:- If the change results in a new evaluation of `cross-brand duplicate`(f.e. from false to true), this status is**propagated**to all players (Player ID 1 and Player ID 2) in the chain.
+- Similarly, if the result is `cross-brand duplicate: false`, the updated status is also**propagated**to all linked players.
+ 
+- If the change results in a new evaluation of 
+- **If the email is updated on any earlier player in the chain (not the last one: Player ID 1 and Player ID 2)**:- No reevaluation or propagation occurs.
+- The player is **not compared**against others for cross-brand duplication based on the new email.
+ 
+ 
+
+To exclude players with `cross-brand duplicate: true status` from the affiliates rewards you need to specify "omit_cross_brand_duplicates" modifier in the commission.
+
+This modifier can be found under the "Modifiers" section of the commission constructor.
+
+**Note:** You won't be able to publish commission with "omit_cross_brand_duplicates" modifier right after enabling cross-brand duplicates feature since the system should reevaluate all your existing players database and assigned status if needed (the process may take several hours).
+
+ 
+
+We’ve introduced a new **reward type** designed specifically for **subaffiliate systems** across all supported modules — **Casino**, **Sportsbook**, and **Poker**. This feature gives operators more flexibility and precision when configuring rewards for parent affiliates based on the performance of their subaffiliates.
+
+The reward for parent affiliate is calculated based on the NGR which was generated by subaffiliate players for the specified reporting period. Keep in mind that during reward calculation the system already deducts Admin fee using percent from player's commission assigned to the subaffiliate.
+
+Input data:
+
+- **Parent affiliate id 1 has two subaffiliates:**Subaffiliate id 3 & Subaffiliate id 5.
+- **Rewards:**5% of subaffiliate casino ngr (subaffiliate_ngr_percent) + 3% of subaffiliate sportsbook ngr (subaffiliate_sb_ngr_percent).
+- Admin fee is calculated from NGR.
+
+Output data:
+
+- Subaffiliate id 3 generated Casino Real NGR 5000EUR → 30% Admin Fee deduction → €3500 Casino NGR.
+- Subaffiliate id 5 generated Sportsbook Real NGR 3000EUR → 20% Admin Fee deduction → €2400 Casino NGR.
+- Reward for parent affiliate: 3500*5%+2400*3%=247 EUR.
+
+New "subaffiliate_ngr_percent", "subaffiliate_sb_ngr_percent", "subaffiliate_poker_ngr_percent" rewards can be found under the "Rewards" section of the commission constructor with enabled commission `subaffiliate: true` checkbox.
+
+Note:
+
+- **Admin Fee is already included in**subaffiliate reward calculation — you- **cannot apply an additional Admin Fee**on top of it for parent affiliate commissions.
+- **Debts cannot be generated**for parent affiliates during subaffiliate reward calculation.
+
+Corresponding **Subaffiliate NGR conditions** (Casino/Sportsbook/Poker) have also been added under the **"Conditions"**section of the commission constructor, giving more control over when rewards apply.
+
+ 
+
+Previously, operators needed to contact their Account Managers to add landing domains for their brands. This manual process caused unnecessary delays, particularly in time-sensitive situations, and was inefficient for both parties. We’ve introduced a new **“Landing Domains” page **(/casino/landing_domains), allowing operators to independently manage their landing domains at any time — no Account Manager involvement required.
+
+ 
+
+A **landing domain** is the root domain used for creating landings that are later used in affiliate promotions. These landing pages serve as entry points for referral links shared by affiliates.**Example:**
+
+In the landing page `https://casinosite.com/christmas_bonus`, the landing domain is `https://casinosite.com`.
+
+To add landing domain you need to do the following:
+
+- Navigate to the **Landing Domains**page:`/casino/landing_domains`(under the Affiliate Program section).
+- Click the **"New"**button in the top-right corner.
+- Fill in the form:
+
+- **Name**– A custom name for internal reference.
+- **Subaffiliate**– Enable this option if the domain is intended for use in a subaffiliate system.
+- **Brand**– Select the brand this domain is associated with (not applicable for subaffiliate domains).
+- **Landing domain**– Enter the full domain URL (must use- `https://`protocol).
+
+- Click "Submit" button.
+
+Right after landing domain creation, the landing with the same URL will be created and be visible on "Landings" page (/casino/landings) and If this is the first landing for the brand, it will be marked as **Default**.
+
+You can archive any landing domain by clicking the **"Archive"** button next to it and confirming the action.**Note:** Archiving a landing domain will also automatically archive **all landings** created under that domain.
+
+ 
+
+Previously, the first landing created for a brand was automatically used in default campaigns (e.g. those created upon affiliate sign-up). However, there was **no way to control or change** which landing should serve as the default. This led to confusion and limited flexibility in managing default campaigns.
+
+As a solution, we’ve introduced a **“Default” status** for landings, allowing full control over which landing should be used in default affiliate campaigns per brand.
+
+To enable Default status on the landing you need to:
+
+- Navigate to the **Landings**page:`/casino/landings`(located in the Affiliate Program section).
+- Find the landing you want to set as default and click **"Edit"**.
+- Scroll to the bottom of the edit form and enable the **"Default landing"**checkbox.
+- Click "Submit" button.
+
+Keep in mind:
+
+- "Default landing" checkbox can be activated only if landing is in "Shared" state.
+- Only 1 landings domain can be in "Default" status per brand at a time. Setting a new landing as default will automatically **remove**the "Default" status from the previously assigned one.
+
+You can also **remove the "Default" status entirely** by unchecking the box on all landings for a brand. In this case, **default campaigns will no longer be created** for that brand when new affiliates sign up.
+
+To easily view which landings are currently set as default, use the **“Default” filter** on the Landings page.
+
+ 
+
+We've implemented the new "Commission" grouper for the Partner Statistics report (/casino/ report) that should improve transparency and clarity in data analysis on the Commission level.
+
+On the "**Partner Statistics"** page (/casino/report), under the **"Group by"** section, you can now select **"Commission"** as a grouping option.
+
+- When enabled, the report will display visits, registrations, and player activity **grouped by commission**.
+- Each commission in the report includes a **clickable title**, providing quick access to the detailed commission page.
+- In **all export formats**of the report, both**Commission ID**and**Commission Title**are now included for full visibility.
+
+This new grouper is **available to affiliates** as well — but it is **disabled by default**. Please refer to casino/partner report settings to enable this grouper for affiliate(-s).
+
+ 
+
+In order for you to export your bills' information via API, we have created a separate endpoint for the "Bills" page, available via **/api/customer/v1/casino/bills**. When making requests to the Customer API, you need to send your user’s unique statistic token in the authorisation header. Your unique statistic token can be found on your operator’s detailed page: /casino/users/:user_id page.
+
+When getting a request for a list of bills, the system takes into account the existing "Bills read" role that may limit access to bill's data.
+
+You can find new API documentation following the API tab - Customer Operator - Bills section - "**List of bills with all totals**".
+
+ 
+
+To increase a transparency in process of changing visible report components for affiliates within affiliate program, we've implemented "Casino settings change" and "Partner settings change" events which will be triggered once the action is performed:
+
+- "Casino settings change" will be triggered when global casino report settings are changed on the "Partner Report" page (/casino/settings/partner_report).
+- "Partner settings change" will be triggered when individual partner report settings are changed on the "Partner Report" page (/casino/settings/partner_report).
+
+Each event includes:
+
+- The **user**who made the changes
+- The **target entity**(casino or specific partner)
+- A clear list of changes:- **Green highlights**for newly added components
+- **Red highlights**for removed/changed components
+ 
+
+You can access detailed logs on the **event detailed page** for full visibility into what was changed and who made the change.
+
+These events are also available for **email subscription**, so your team can stay informed in real time when report visibility settings are updated.
+
+ 
+
+**The "Partner report settings" ability** allows to manage which operators can change the visibility of partner report filters, columns, groupings. Here's how it works with different users:
+
+- **"Partner report settings" enabled for Operators:**users with such a role can view active report settings on the partner's detailed page - Settings tab (/casino/partners/:id/settings/partner_report page), view all the events related to the report settings change on the /casino/events page and are able to modify report settings- **only individually for affiliates**.
+- **"Partner report settings" enabled for SuperOperators:**users with such a role can view active report settings on the "All settings" page - Partner Report tab (/casino/settings/partner_report) and partner's detailed page - Settings tab (/casino/partners/:id/settings/partner_report page), view all the events related to the report settings change on the /casino/events page and are able to modify report settings- **both for casino and individually for affiliates**.
+
+Starting from the release, the "Partner report settings" role will be activated automatically for all Operators and SuperOperators. To (de-)activate this role for the operators, please, use the "Roles" page (/casino/roles).
+
+You can also limit which SuperOperators can have access to this role by using the SuperOperator exclusions "Partner report settings". Please, contact your Account Manager if you want to limit the scope of action for some of your SuperOperators.
+
+
+We've improved our product and interface with the following minor adjustments:
+
+- **Language Selection on Partner Registration Form:**affiliates can now select their preferred language from a convenient dropdown during registration.
+- **Filters on**affiliate "Payments" page (/partner/payments):Affiliates can now filter payments by currency, amount, payment system, created at and finished at dates.
+- **Unified Tag View:**partner tags are now displayed using a consistent interface design.
+- **Traffic Report:**usability of the date filter is enhanced with quick-select “Fast” periods for faster navigation. "Countries" filter and "Country" grouper are renamed to "Visit countries" and "Visit country" respectively.
+- **Responsive Product Scaling:**the product interface now adapts more effectively to smaller screens, allowing users to view more data with less scrolling.
+- **Breadcrumb Navigation Added on:**My Promos page (/partner/promo) and Cohort Analysis page (/casino/cohort_analysis).
+- **Subaffiliate Status Displayed on:**Campaigns (/casino/campaigns), Promos (/casino/promos), Landings (/casino/landings) pages as well as on its detailed page.
+
+
+- "Campaigns" (/partner/campaigns) and "Promos" (/partner/promos) pages can be exported by affiliates via API. The documentation can be found under "Partner API" tab (/partner/api_docs/customer/partner/index.md).
+- "Campaign ID" and "Promo ID" parameters can be sent to the casino landing page with a referral link. Please contact your Account Manager to enable this option.
+- "Crypto" payment system: USDC currency is now available for cross-currency withdrawals. Please contact your Account Manager to enable this option.
+- "Crypto" payment system: further currencies are renamed:
+ USDTT --> USDT (TRC20)
+ USDTE --> USDT (ERC20)
+ USDC --> USDC (ERC-20)
+ USDCS --> USDC (SOL)
+- Pop-up confirmation will appear if sensitive parameters are selected during partner report settings adjustments.
+- BUG FIX: filter by commission id on the Partner Statistics page (/casino/report) is improved.
+- BUG FIX: some minor problems with totals in Cohort Analysis report are resolved.
